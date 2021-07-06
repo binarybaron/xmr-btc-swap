@@ -147,11 +147,13 @@ async fn next_state(
                     received_xmr = monero_wallet.watch_for_transfer(watch_request) => {
                         match received_xmr {
                             Ok(()) => BobState::XmrLocked(state.xmr_locked(monero_wallet_restore_blockheight)),
-                            Err(e) => {
-                                 tracing::warn!("Waiting for refund because insufficient Monero have been locked! {:#}", e);
-                                 tx_lock_status.wait_until_confirmed_with(state.cancel_timelock).await?;
+                            Err(monero::InsufficientFunds { expected, actual }) => {
+                                tracing::warn!("Insufficient Monero have been locked! Expected {} but got {}", expected, actual);
+                                tracing::info!("Waiting for cancel timelock ({}) to expire", state.cancel_timelock);
 
-                                 BobState::CancelTimelockExpired(state.cancel())
+                                tx_lock_status.wait_until_confirmed_with(state.cancel_timelock).await?;
+
+                                BobState::CancelTimelockExpired(state.cancel())
                             },
                         }
                     }
@@ -227,7 +229,7 @@ async fn next_state(
             let tx_hashes = monero_wallet.sweep_all(receive_monero_address).await?;
 
             for tx_hash in tx_hashes {
-                tracing::info!(%receive_monero_address, txid=%tx_hash.0, "Sent XMR to");
+                tracing::info!(%receive_monero_address, txid=%tx_hash.0, "Successfully transferred XMR to wallet");
             }
 
             BobState::XmrRedeemed {
