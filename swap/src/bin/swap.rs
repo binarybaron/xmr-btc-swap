@@ -34,7 +34,6 @@ use swap::protocol::bob;
 use swap::protocol::bob::Swap;
 use swap::seed::Seed;
 use swap::{bitcoin, cli, monero};
-use tracing::{debug, error, info, warn};
 use url::Url;
 use uuid::Uuid;
 
@@ -118,7 +117,7 @@ async fn main() -> Result<()> {
             )
             .await?;
 
-            info!(%amount, %fees, %swap_id,  "Swapping");
+            tracing::info!(%amount, %fees, %swap_id,  "Swapping");
 
             db.insert_peer_id(swap_id, seller_peer_id).await?;
 
@@ -256,9 +255,9 @@ async fn main() -> Result<()> {
 
             match cancel {
                 Ok((txid, _)) => {
-                    debug!("Cancel transaction successfully published with id {}", txid)
+                    tracing::debug!("Cancel transaction successfully published with id {}", txid)
                 }
-                Err(cli::cancel::Error::CancelTimelockNotExpiredYet) => error!(
+                Err(cli::cancel::Error::CancelTimelockNotExpiredYet) => tracing::error!(
                     "The Cancel Transaction cannot be published yet, because the timelock has not expired. Please try again later"
                 ),
             }
@@ -365,9 +364,9 @@ where
     TS: Future<Output = Result<()>>,
     FS: Fn() -> TS,
 {
-    debug!("Requesting quote");
+    tracing::debug!("Requesting quote");
     let bid_quote = bid_quote.await?;
-    info!(
+    tracing::info!(
         price = %bid_quote.price,
         minimum_amount = %bid_quote.min_quantity,
         maximum_amount = %bid_quote.max_quantity,
@@ -385,7 +384,7 @@ where
             eprintln!("{}", qr_code(&deposit_address)?);
         }
 
-        info!(
+        tracing::info!(
             %deposit_address,
             %max_giveable,
             %minimum_amount,
