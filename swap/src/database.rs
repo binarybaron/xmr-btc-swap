@@ -4,13 +4,15 @@ use crate::protocol::alice::AliceState;
 use crate::protocol::bob::BobState;
 use crate::protocol::State;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 
 mod alice;
 mod bob;
 mod sled;
+mod sqlite;
 
 pub use self::sled::SledDatabase;
+pub use sqlite::SqliteDatabase;
+use std::fmt::Display;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum Swap {
