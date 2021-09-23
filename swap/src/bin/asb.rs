@@ -29,12 +29,11 @@ use swap::asb::config::{
     initial_setup, query_user_for_initial_config, read_config, Config, ConfigNotInitialized,
 };
 use swap::asb::{cancel, punish, redeem, refund, safely_abort, EventLoop, Finality, KrakenRate};
-use swap::database::SledDatabase;
+use swap::database::open_db;
 use swap::monero::Amount;
 use swap::network::rendezvous::XmrBtcNamespace;
 use swap::network::swarm;
 use swap::protocol::alice::{run, AliceState};
-use swap::protocol::Database;
 use swap::seed::Seed;
 use swap::tor::AuthenticatedClient;
 use swap::{asb, bitcoin, kraken, monero, tor};
@@ -93,12 +92,9 @@ async fn main() -> Result<()> {
     }
 
     let db_path = config.data.dir.join("database");
+    let sled_path = config.data.dir.join(db_path);
 
-    let db = Arc::new(
-        SledDatabase::open(config.data.dir.join(db_path).as_path())
-            .await
-            .context("Could not open database")?,
-    );
+    let db = open_db(sled_path, config.data.dir.join("sqlite"), true).await?;
 
     let seed =
         Seed::from_file_or_generate(&config.data.dir).expect("Could not retrieve/initialize seed");

@@ -8,7 +8,7 @@ use libp2p::{Multiaddr, PeerId};
 use sqlx::sqlite::Sqlite;
 use sqlx::{Pool, SqlitePool};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -17,11 +17,11 @@ pub struct SqliteDatabase {
 }
 
 impl SqliteDatabase {
-    pub async fn open(path: PathBuf) -> Result<Self>
+    pub async fn open(path: impl AsRef<Path>) -> Result<Self>
     where
         Self: std::marker::Sized,
     {
-        let path_str = format!("sqlite:{}", path.as_path().display());
+        let path_str = format!("sqlite:{}", path.as_ref().display());
         let pool = SqlitePool::connect(&path_str).await?;
         Ok(Self { pool })
     }
