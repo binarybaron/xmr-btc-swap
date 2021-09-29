@@ -88,6 +88,7 @@ pub async fn open_db(
         sled_flag,
     ) {
         (true, false, false) => {
+            tracing::info!("Attempting to migrate old data to the new sqlite database...");
             let sled_db = SledDatabase::open(sled_path.as_ref()).await?;
 
             tokio::fs::File::create(&sqlite_path).await?;
@@ -116,9 +117,12 @@ pub async fn open_db(
                 sqlite.insert_peer_id(swap_id, peer_id).await?;
             }
 
+            tracing::info!("Sucessfully migrated data to sqlite! Using sqlite.");
+
             Ok(Arc::new(sqlite))
         }
         (_, _, false) => {
+            tracing::debug!("Sled database not found. Using sqlite.");
             tokio::fs::File::create(&sqlite_path).await?;
             let mut sqlite = SqliteDatabase::open(sqlite_path).await?;
             sqlite.run_migrations().await?;
@@ -128,6 +132,7 @@ pub async fn open_db(
             bail!("Sled database does not exist at specified location")
         }
         (true, _, true) => {
+            tracing::debug!("Sled flag set. Using sled database.");
             let sled = SledDatabase::open(sled_path.as_ref()).await?;
             Ok(Arc::new(sled))
         }
