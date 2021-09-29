@@ -187,6 +187,44 @@ impl SledDatabase {
         })
     }
 
+    pub fn get_all_peers(&self) -> impl Iterator<Item = Result<(Uuid, PeerId)>> {
+        self.peers.iter().map(|item| {
+            let (key, value) = item.context("Failed to retrieve peer id from DB")?;
+
+            let swap_id = deserialize::<Uuid>(&key)?;
+            let peer_id_bytes = deserialize::<Vec<u8>>(&value).context("Failed to deserialize swap")?;
+
+            let peer_id = PeerId::from_bytes(&peer_id_bytes)?;
+
+            Ok((swap_id, peer_id))
+        })
+    }
+
+    pub fn get_all_addresses(&self) -> impl Iterator<Item = Result<(PeerId, Vec<Multiaddr>)>> {
+        self.addresses.iter().map(|item| {
+            let (key, value) = item.context("Failed to retrieve peer address from DB")?;
+
+            let peer_id_bytes = deserialize::<Vec<u8>>(&key)?;
+            let addr = deserialize::<Vec<Multiaddr>>(&value).context("Failed to deserialize swap")?;
+
+            let peer_id = PeerId::from_bytes(&peer_id_bytes)?;
+
+            Ok((peer_id, addr))
+        })
+    }
+
+
+    pub fn get_all_monero_addresses(&self) -> impl Iterator<Item = Result<(Uuid, monero::Address)>> {
+        self.monero_addresses.iter().map(|item| {
+            let (key, value) = item.context("Failed to retrieve monero address from DB")?;
+
+            let swap_id = deserialize::<Uuid>(&key)?;
+            let addr = deserialize::<monero::Address>(&value).context("Failed to deserialize swap")?;
+
+            Ok((swap_id, addr))
+        })
+    }
+
     fn all_iter(&self) -> impl Iterator<Item = Result<(Uuid, State)>> {
         self.swaps.iter().map(|item| {
             let (key, value) = item.context("Failed to retrieve swap from DB")?;

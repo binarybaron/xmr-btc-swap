@@ -5,7 +5,6 @@ use crate::protocol::bob::BobState;
 use crate::protocol::{Database, State};
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::fmt::Display;
 use std::path::Path;
 use std::sync::Arc;
@@ -90,38 +89,39 @@ pub async fn open_db(
     ) {
         (true, false, false) => {
             let sled_db = SledDatabase::open(sled_path.as_ref()).await?;
-            let sqlite = SqliteDatabase::open(sqlite_path).await?;
 
-            let swaps = sled_db.all().await?;
+            tokio::fs::File::create(&sqlite_path).await?;
+            let mut sqlite = SqliteDatabase::open(sqlite_path).await?;
+            sqlite.run_migrations().await?;
 
-            for (swap_id, state) in swaps.iter() {
+            let swap_states = sled_db.all().await?;
+            for (swap_id, state) in swap_states.iter() {
                 sqlite.insert_latest_state(*swap_id, state.clone()).await?;
-                let monero_address = sled_db.get_monero_address(*swap_id).await?;
-                sqlite
-                    .insert_monero_address(*swap_id, monero_address)
-                    .await?;
             }
 
-            let mut unique_peer_ids = HashSet::new();
-
-            for (swap_id, _) in swaps.iter() {
-                let peer_id = sled_db.get_peer_id(*swap_id).await?;
-                sqlite.insert_peer_id(*swap_id, peer_id).await?;
-                unique_peer_ids.insert(peer_id);
+            let monero_addresses = sled_db.get_all_monero_addresses();
+            for (swap_id, monero_address) in monero_addresses.flatten() {
+                sqlite.insert_monero_address(swap_id, monero_address).await?;
             }
 
-            for peer_id in unique_peer_ids {
-                let addresses_of_peer = sled_db.get_addresses(peer_id).await?;
-
-                for address in addresses_of_peer.iter() {
-                    sqlite.insert_address(peer_id, address.clone()).await?;
+            let peer_addresses =  sled_db.get_all_addresses();
+            for (peer_id, addresses) in peer_addresses.flatten() {
+                for address in addresses {
+                    sqlite.insert_address(peer_id, address).await?;
                 }
+            }
+
+            let peers = sled_db.get_all_peers();
+            for (swap_id, peer_id) in peers.flatten() {
+                sqlite.insert_peer_id(swap_id, peer_id).await?;
             }
 
             Ok(Arc::new(sqlite))
         }
         (_, _, false) => {
-            let sqlite = SqliteDatabase::open(sqlite_path).await?;
+            tokio::fs::File::create(&sqlite_path).await?;
+            let mut sqlite = SqliteDatabase::open(sqlite_path).await?;
+            sqlite.run_migrations().await?;
             Ok(Arc::new(sqlite))
         }
         (false, _, true) => {
