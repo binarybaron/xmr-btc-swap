@@ -1,10 +1,10 @@
 status = [
     "static_analysis",
-    "build (x86_64-unknown-linux-gnu, ubuntu-latest)",
-    "build (armv7-unknown-linux-gnueabihf, ubuntu-latest)",
+    "build (x86_64-unknown-linux-gnu, ubuntu-18.04)",
+    "build (armv7-unknown-linux-gnueabihf, ubuntu-18.04)",
     "build (x86_64-apple-darwin, macos-latest)",
     "build (x86_64-pc-windows-msvc, windows-latest)",
-    "test (ubuntu-latest)",
+    "test (ubuntu-18.04)",
     "test (macos-latest)",
     "docker_tests (happy_path)",
     "docker_tests (happy_path_restart_bob_after_xmr_locked)",
