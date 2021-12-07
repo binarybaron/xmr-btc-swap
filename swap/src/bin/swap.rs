@@ -225,7 +225,10 @@ async fn main() -> Result<()> {
             .await?;
 
             let bitcoin_balance = bitcoin_wallet.balance().await?;
-            println!("Bitcoin balance is {}", bitcoin_balance);
+            tracing::info!(
+                balance = %bitcoin_balance,
+                "Checked Bitcoin balance",
+            );
         }
         Command::Resume {
             swap_id,
