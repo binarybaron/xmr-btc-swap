@@ -52,7 +52,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
         with:
-          key: ${{ matrix.os }}
+          key: "ubuntu-18.04"
 
       - name: Install compiler for armhf arch
         if: matrix.target == 'armv7-unknown-linux-gnueabihf'
