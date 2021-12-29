@@ -17,7 +17,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
         with:
-          key: ${{ matrix.os }}
+          key: "ubuntu-18.04"
+
 
       - name: Check formatting
         uses: dprint/check@v2.0
@@ -48,7 +49,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
         with:
-          key: ${{ matrix.os }}
+          key: "ubuntu-18.04"
 
       - name: Install compiler for armhf arch
         if: matrix.target == 'armv7-unknown-linux-gnueabihf'
@@ -83,7 +84,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
         with:
-          key: ${{ matrix.os }}
+          key: "ubuntu-18.04"
 
       - name: Build tests
         run: cargo build --tests --workspace --all-features
@@ -121,7 +122,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1.3.0
         with:
-          key: ${{ matrix.os }}
-          
+          key: "ubuntu-18.04"
+
       - name: Run test ${{ matrix.test_name }}
         run: cargo test --package swap --all-features --test ${{ matrix.test_name }} -- --nocapture
