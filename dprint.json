@@ -5,7 +5,7 @@
   "markdown": {
   },
   "rustfmt": {
-    "edition": 2018,
+    "edition": 2021,
     "condense_wildcard_suffixes": true,
     "format_macro_matchers": true,
     "imports_granularity" : "Module",
