@@ -25,6 +25,7 @@ use libp2p::{identity, Multiaddr, NetworkBehaviour, PeerId, Transport};
 use std::task::Poll;
 use std::time::Duration;
 use uuid::Uuid;
+use libp2p::identify::{Identify, IdentifyConfig, IdentifyEvent};
 
 pub mod transport {
     use super::*;
@@ -111,6 +112,7 @@ pub mod behaviour {
         pub swap_setup: alice::Behaviour<LR>,
         pub transfer_proof: transfer_proof::Behaviour,
         pub encrypted_signature: encrypted_signature::Behaviour,
+        pub identify: Identify,
 
         /// Ping behaviour that ensures that the underlying network connection
         /// is still alive. If the ping fails a connection close event
@@ -128,10 +130,13 @@ pub mod behaviour {
             latest_rate: LR,
             resume_only: bool,
             env_config: env::Config,
+            identify_params: (identity::Keypair, XmrBtcNamespace),
             rendezvous_params: Option<(identity::Keypair, PeerId, Multiaddr, XmrBtcNamespace)>,
         ) -> Self {
+            let protocolVersion = format!("asb/{} ({})", env!("CARGO_PKG_VERSION"), identify_params.1.to_string());
+
             Self {
-                rendezvous: libp2p::swarm::toggle::Toggle::from(rendezvous_params.map(
+                    rendezvous: libp2p::swarm::toggle::Toggle::from(rendezvous_params.map(
                     |(identity, rendezvous_peer_id, rendezvous_address, namespace)| {
                         rendezous::Behaviour::new(
                             identity,
@@ -153,12 +158,22 @@ pub mod behaviour {
                 transfer_proof: transfer_proof::alice(),
                 encrypted_signature: encrypted_signature::alice(),
                 ping: Ping::new(PingConfig::new().with_keep_alive(true)),
+                identify: Identify::new(IdentifyConfig::new(
+                    protocolVersion,
+                    identify_params.0.public().clone(),
+                )),
             }
         }
     }
 
     impl From<PingEvent> for OutEvent {
         fn from(_: PingEvent) -> Self {
+            OutEvent::Other
+        }
+    }
+
+    impl From<IdentifyEvent> for OutEvent {
+        fn from(_: IdentifyEvent) -> Self {
             OutEvent::Other
         }
     }

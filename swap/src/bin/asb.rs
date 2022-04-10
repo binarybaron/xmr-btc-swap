@@ -136,6 +136,14 @@ async fn main() -> Result<()> {
             };
 
             let kraken_rate = KrakenRate::new(config.maker.ask_spread, kraken_price_updates);
+            let namespace = {
+                if testnet {
+                    XmrBtcNamespace::Testnet
+                } else {
+                    XmrBtcNamespace::Mainnet
+                }
+            };
+
             let mut swarm = swarm::asb(
                 &seed,
                 config.maker.min_buy_btc,
@@ -143,16 +151,8 @@ async fn main() -> Result<()> {
                 kraken_rate.clone(),
                 resume_only,
                 env_config,
-                config.network.rendezvous_point.map(|rendezvous_point| {
-                    (
-                        rendezvous_point,
-                        if testnet {
-                            XmrBtcNamespace::Testnet
-                        } else {
-                            XmrBtcNamespace::Mainnet
-                        },
-                    )
-                }),
+                namespace,
+                config.network.rendezvous_point,
             )?;
 
             for listen in config.network.listen.clone() {
