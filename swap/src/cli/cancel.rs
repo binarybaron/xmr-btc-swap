@@ -36,21 +36,36 @@ pub async fn cancel(
 
     tracing::info!(%swap_id, "Manually cancelling swap");
 
-    let txid = match state6.submit_tx_cancel(bitcoin_wallet.as_ref()).await {
-        Ok(txid) => txid,
+    match state6.submit_tx_cancel(bitcoin_wallet.as_ref()).await {
+        Ok(txid) => {
+            let state = BobState::BtcCancelled(state6);
+            db.insert_latest_state(swap_id, state.clone().into())
+                .await?;
+
+            return Ok((txid, state));
+        },
         Err(err) => {
             if let Ok(code) = parse_rpc_error_code(&err) {
-                if code == i64::from(RpcErrorCode::RpcVerifyAlreadyInChain) {
-                    tracing::info!("Cancel transaction has already been confirmed on chain")
+                tracing::debug!(%code, "Cancel transaction broadcast was rejected by electrum server");
+
+                // RpcErrorCode::RpcVerifyAlreadyInChain is returned when the tx has been already been published and confirmed
+                // RpcErrorCode::RpcVerifyError (-25) is returned when the tx has been already been published and confirmed the refund/punish transaction has already been published
+                if code == i64::from(RpcErrorCode::RpcVerifyAlreadyInChain) || code == i64::from(RpcErrorCode::RpcVerifyError) {
+                    tracing::info!("Cancel transaction has already been confirmed on chain. The swap has therefore already been cancelled by Alice");
+                    let txid = state6.construct_tx_cancel().unwrap().txid();
+                    let state = BobState::BtcCancelled(state6);
+                    db.insert_latest_state(swap_id, state.clone().into())
+                        .await?;
+
+                    return Ok((txid, state));
+                }
+
+                // RpcErrorCode::RpcVerifyError (-25) is returned when the timelock is not yet expired
+                if code == i64::from(RpcErrorCode::RpcVerifyRejected) {
+                    bail!("Cancel timelock is not yet expired, please try again later");
                 }
             }
             bail!(err);
         }
     };
-
-    let state = BobState::BtcCancelled(state6);
-    db.insert_latest_state(swap_id, state.clone().into())
-        .await?;
-
-    Ok((txid, state))
 }
